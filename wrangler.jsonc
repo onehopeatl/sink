@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "sink",
+  "name": "ohc-link-shortener",
   "main": "dist/server/index.mjs",
   "assets": {
     "binding": "ASSETS",
