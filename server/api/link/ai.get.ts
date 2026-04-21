@@ -63,6 +63,7 @@ export default eventHandler(async (event) => {
     messages,
     chat_template_kwargs: {
       enable_thinking: false,
+      thinking: false,
     },
   }) as AiChatResponse
 
