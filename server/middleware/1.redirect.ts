@@ -142,6 +142,12 @@ export default eventHandler(async (event) => {
       const shouldRedirectWithQuery = link.redirectWithQuery ?? redirectWithQuery
       const buildTarget = (url: string) => shouldRedirectWithQuery ? withQuery(url, query) : url
 
+      let targetUrl = link.url
+      const country = event.context.cloudflare?.request?.cf?.country
+      if (country && typeof country === 'string' && link.geo && link.geo[country.toUpperCase()]) {
+        targetUrl = link.geo[country.toUpperCase()]!
+      }
+
       const deviceRedirectUrl = getDeviceRedirectUrl(userAgent, link)
       if (deviceRedirectUrl) {
         return sendRedirect(event, deviceRedirectUrl, +redirectStatusCode)
@@ -149,20 +155,20 @@ export default eventHandler(async (event) => {
 
       if (isSocialBot(userAgent) && hasOgConfig(link)) {
         const baseUrl = `${getRequestProtocol(event)}://${getRequestHost(event)}`
-        const html = generateOgHtml(link, buildTarget(link.url), baseUrl)
+        const html = generateOgHtml(link, buildTarget(targetUrl), baseUrl)
         setHeader(event, 'Content-Type', 'text/html; charset=utf-8')
         return html
       }
 
       if (link.cloaking) {
         const baseUrl = `${getRequestProtocol(event)}://${getRequestHost(event)}`
-        const html = generateCloakingHtml(link, buildTarget(link.url), baseUrl)
+        const html = generateCloakingHtml(link, buildTarget(targetUrl), baseUrl)
         setHeader(event, 'Content-Type', 'text/html; charset=utf-8')
         setHeader(event, 'Cache-Control', 'no-store, private')
         return html
       }
 
-      return sendRedirect(event, buildTarget(link.url), +redirectStatusCode)
+      return sendRedirect(event, buildTarget(targetUrl), +redirectStatusCode)
     }
     else {
       if (notFoundRedirect) {
