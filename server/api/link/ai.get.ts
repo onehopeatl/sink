@@ -96,16 +96,16 @@ export default eventHandler(async (event) => {
   let parsed = destr(content)
 
   // Ensure we always return an object with a slug property
-  if (typeof parsed === 'string') {
+  if (typeof parsed === 'string' || parsed === null) {
     // Try regex fallback if destr fails
     const slugMatch = content.match(/"slug"\s*:\s*"([^"]+)"/)
     if (slugMatch && slugMatch[1]) {
       parsed = { slug: slugMatch[1] }
     }
     else {
-      // Last resort fallback
-      const fallbackMatch = parsed.match(/[a-z0-9-]+/i)
-      if (fallbackMatch && fallbackMatch[0] && parsed.length < 50) {
+      // Last resort fallback: try to find anything that looks like a slug in the string
+      const fallbackMatch = content.match(/[a-z0-9-]+/i)
+      if (fallbackMatch && fallbackMatch[0] && content.length < 50) {
         parsed = { slug: fallbackMatch[0].toLowerCase() }
       }
       else {
@@ -116,12 +116,17 @@ export default eventHandler(async (event) => {
       }
     }
   }
-  else if (!parsed || typeof parsed !== 'object' || !('slug' in parsed) || !parsed.slug) {
+
+  // Final validation of the parsed object
+  const result = parsed as Record<string, any>
+  if (typeof result !== 'object' || !result.slug) {
     throw createError({
       statusCode: 500,
       statusMessage: 'AI response missing slug property',
     })
   }
 
-  return parsed
+  return {
+    slug: String(result.slug),
+  }
 })

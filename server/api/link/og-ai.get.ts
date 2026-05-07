@@ -89,13 +89,17 @@ export default eventHandler(async (event) => {
   let parsed = destr(content)
 
   // Ensure we always return an object with title and description properties
-  if (typeof parsed === 'string') {
-    // Attempt to extract title and description as best effort
+  if (typeof parsed === 'string' || parsed === null) {
+    // Attempt to extract title and description as best effort from the raw content
     // E.g. "Title: My Title\nDescription: My description"
-    const titleMatch = parsed.match(/title:\s*([^\n]+)/i) || parsed.match(/"title"\s*:\s*"((?:[^"\\]|\\.)+)"/)
-    const descMatch = parsed.match(/description:\s*([^\n]+)/i) || parsed.match(/"description"\s*:\s*"((?:[^"\\]|\\.)+)"/)
-    if (titleMatch && descMatch) {
-      parsed = { title: titleMatch[1].trim(), description: descMatch[1].trim() }
+    const titleMatch = content.match(/title:\s*([^\n]+)/i) || content.match(/"title"\s*:\s*"((?:[^"\\]|\\.)+)"/)
+    const descMatch = content.match(/description:\s*([^\n]+)/i) || content.match(/"description"\s*:\s*"((?:[^"\\]|\\.)+)"/)
+
+    if (titleMatch && titleMatch[1] && descMatch && descMatch[1]) {
+      parsed = {
+        title: titleMatch[1].trim(),
+        description: descMatch[1].trim(),
+      }
     }
     else {
       throw createError({
@@ -104,12 +108,18 @@ export default eventHandler(async (event) => {
       })
     }
   }
-  else if (!parsed || typeof parsed !== 'object' || !('title' in parsed) || !('description' in parsed)) {
+
+  // Final validation of the parsed object
+  const result = parsed as Record<string, any>
+  if (typeof result !== 'object' || !result.title || !result.description) {
     throw createError({
       statusCode: 500,
       statusMessage: 'AI response missing title or description property',
     })
   }
 
-  return parsed
+  return {
+    title: String(result.title),
+    description: String(result.description),
+  }
 })
