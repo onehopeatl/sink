@@ -54,12 +54,27 @@ export default eventHandler(async (event) => {
 
   const response = await AI.run(aiModel as keyof AiModels, {
     messages,
-    chat_template_kwargs: {
-      enable_thinking: false,
-    },
   }) as AiChatResponse
 
   let content = response.response ?? response.choices?.[0]?.message?.content ?? ''
+
+  if (!content || content.trim() === '') {
+    console.error('AI OG response is empty. Fallback initiated.')
+    try {
+      const urlObj = new URL(url)
+      const domain = urlObj.hostname.replace('www.', '')
+      return {
+        title: domain,
+        description: `Short link for ${url}`,
+      }
+    }
+    catch {
+      return {
+        title: 'Short Link',
+        description: 'Check out this link on Sink.',
+      }
+    }
+  }
 
   // 1. Try to strip markdown code block wrapper (e.g. ```json\n{...}\n```)
   const codeBlockMatch = content.match(/```(?:json)?\n([\s\S]*?)```/)
@@ -91,22 +106,61 @@ export default eventHandler(async (event) => {
   // Ensure we always return an object with title and description properties
   if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
     // Attempt to extract title and description as best effort from the raw content
-    // E.g. "Title: My Title\nDescription: My description"
-    const titleMatch = content.match(/title:\s*([^\n]+)/i) || content.match(/"title"\s*:\s*"((?:[^"\\]|\\.)+)"/)
-    const descMatch = content.match(/description:\s*([^\n]+)/i) || content.match(/"description"\s*:\s*"((?:[^"\\]|\\.)+)"/)
+    // Check multiple common formats: JSON-like, YAML-like, or plain text labels
+    const titlePatterns = [
+      /"title"\s*:\s*"([^"]+)"/,
+      /title:\s*([^\n]+)/i,
+      /^title\s*=\s*(.*)/im,
+      /<title>([^<]+)<\/title>/i,
+    ]
 
-    if (titleMatch && titleMatch[1] && descMatch && descMatch[1]) {
+    const descPatterns = [
+      /"description"\s*:\s*"([^"]+)"/,
+      /description:\s*([^\n]+)/i,
+      /^description\s*=\s*(.*)/im,
+    ]
+
+    let extractedTitle = ''
+    let extractedDesc = ''
+
+    for (const pattern of titlePatterns) {
+      const match = content.match(pattern)
+      if (match?.[1]) {
+        extractedTitle = match[1].replace(/^["']|["']$/g, '').trim()
+        break
+      }
+    }
+
+    for (const pattern of descPatterns) {
+      const match = content.match(pattern)
+      if (match?.[1]) {
+        extractedDesc = match[1].replace(/^["']|["']$/g, '').trim()
+        break
+      }
+    }
+
+    if (extractedTitle || extractedDesc) {
       parsed = {
-        title: titleMatch[1].replace(/^["']|["']$/g, '').trim(),
-        description: descMatch[1].replace(/^["']|["']$/g, '').trim(),
+        title: extractedTitle || 'Link',
+        description: extractedDesc || 'No description provided.',
       }
     }
     else {
-      console.error('AI OG response parsing failed. Raw content:', content)
-      throw createError({
-        statusCode: 500,
-        statusMessage: 'Invalid AI response format',
-      })
+      console.error('AI OG response parsing failed. Final content:', content)
+      // Final fallback instead of throwing
+      try {
+        const urlObj = new URL(url)
+        parsed = {
+          title: urlObj.hostname,
+          description: `Short link for ${url}`,
+        }
+      }
+      catch {
+        parsed = {
+          title: 'Short Link',
+          description: 'No metadata available.',
+        }
+      }
     }
   }
 

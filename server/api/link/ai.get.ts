@@ -61,12 +61,34 @@ export default eventHandler(async (event) => {
 
   const response = await AI.run(aiModel as keyof AiModels, {
     messages,
-    chat_template_kwargs: {
-      enable_thinking: false,
-    },
   }) as AiChatResponse
 
   let content = response.response ?? response.choices?.[0]?.message?.content ?? ''
+
+  if (!content || content.trim() === '') {
+    console.error('AI.run() returned an empty response. Full response object:', JSON.stringify(response))
+    // Fallback: try to generate a simple slug from the URL domain/path
+    try {
+      const urlObj = new URL(url)
+      const pathSegments = urlObj.pathname.split('/').filter(Boolean)
+      const domain = urlObj.hostname.split('.').filter(p => !['www', 'com', 'org', 'net', 'io'].includes(p))[0] || urlObj.hostname.split('.')[0]
+      const fallbackSlug = pathSegments.length > 0 ? pathSegments[pathSegments.length - 1] : domain
+
+      if (fallbackSlug) {
+        return {
+          slug: fallbackSlug.toLowerCase().replace(/[^a-z0-9-]/g, '-').substring(0, 50),
+        }
+      }
+    }
+    catch (e) {
+      console.error('Fallback slug generation failed:', e)
+    }
+
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'AI returned an empty response and fallback failed',
+    })
+  }
 
   // 1. Try to strip markdown code block wrapper (e.g. ```json\n{...}\n```)
   const codeBlockMatch = content.match(/```(?:json)?\n([\s\S]*?)```/)
@@ -123,7 +145,7 @@ export default eventHandler(async (event) => {
           parsed = { slug: bestCandidate.toLowerCase() }
         }
         else {
-          console.error('AI response parsing failed. Raw content:', content)
+          console.error('AI response parsing failed. Final content:', content)
           throw createError({
             statusCode: 500,
             statusMessage: 'Invalid AI response format',
