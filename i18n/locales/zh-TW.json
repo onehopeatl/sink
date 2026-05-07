@@ -269,7 +269,8 @@
       "utm_content": "UTM 內容",
       "utm_apply": "套用",
       "utm_clear": "清除",
-      "utm_invalid_url": "請輸入有效的 URL 以預覽並套用 UTM 參數。"
+      "utm_invalid_url": "請輸入有效的 URL 以預覽並套用 UTM 參數。",
+      "ai_og_generate": "生成 AI OpenGraph"
     },
     "sort": {
       "newest": "最新",
@@ -280,7 +281,9 @@
     },
     "update_failed": "更新連結失敗",
     "create_failed": "創建連結失敗",
-    "ai_slug_failed": "AI 生成短連結失敗"
+    "ai_slug_failed": "AI 生成短連結失敗",
+    "ai_og_failed": "生成 AI OpenGraph 失敗",
+    "ai_og_success": "成功生成 AI OpenGraph"
   },
   "migrate": {
     "backup": {

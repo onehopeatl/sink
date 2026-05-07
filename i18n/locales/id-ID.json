@@ -269,7 +269,8 @@
       "utm_content": "Konten UTM",
       "utm_apply": "Terapkan",
       "utm_clear": "Bersihkan",
-      "utm_invalid_url": "Masukkan URL valid untuk melihat pratinjau dan menerapkan parameter UTM."
+      "utm_invalid_url": "Masukkan URL valid untuk melihat pratinjau dan menerapkan parameter UTM.",
+      "ai_og_generate": "Buat OpenGraph AI"
     },
     "sort": {
       "newest": "Terbaru",
@@ -280,7 +281,9 @@
     },
     "update_failed": "Gagal memperbarui tautan",
     "create_failed": "Gagal membuat tautan",
-    "ai_slug_failed": "Gagal membuat slug AI"
+    "ai_slug_failed": "Gagal membuat slug AI",
+    "ai_og_failed": "Gagal membuat OpenGraph AI",
+    "ai_og_success": "OpenGraph AI berhasil dibuat"
   },
   "migrate": {
     "backup": {
