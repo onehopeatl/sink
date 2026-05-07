@@ -96,23 +96,39 @@ export default eventHandler(async (event) => {
   let parsed = destr(content)
 
   // Ensure we always return an object with a slug property
-  if (typeof parsed === 'string' || parsed === null) {
-    // Try regex fallback if destr fails
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    // Try regex fallback if destr fails to produce an object
     const slugMatch = content.match(/"slug"\s*:\s*"([^"]+)"/)
     if (slugMatch && slugMatch[1]) {
       parsed = { slug: slugMatch[1] }
     }
     else {
       // Last resort fallback: try to find anything that looks like a slug in the string
-      const fallbackMatch = content.match(/[a-z0-9-]+/i)
-      if (fallbackMatch && fallbackMatch[0] && content.length < 50) {
-        parsed = { slug: fallbackMatch[0].toLowerCase() }
+      // Look for an explicit "slug: <value>" first
+      const explicitMatch = content.match(/slug[:\s]+([a-z0-9-]+)/i)
+      if (explicitMatch && explicitMatch[1]) {
+        parsed = { slug: explicitMatch[1].toLowerCase() }
       }
       else {
-        throw createError({
-          statusCode: 500,
-          statusMessage: 'Invalid AI response format',
-        })
+        // Try to find the most "slug-like" word in the content
+        // Slugs are usually hyphenated or longer alphanumeric strings
+        const words = content.match(/[a-z0-9-]+/gi) || []
+        // Filter out common short words
+        const candidates = words.filter(w => w.length > 2 && !['the', 'this', 'that', 'your', 'with', 'here', 'your', 'slug'].includes(w.toLowerCase()))
+
+        // Prioritize hyphenated words as they are likely intended as slugs
+        const bestCandidate = candidates.find(w => w.includes('-')) || candidates[0] || words[0]
+
+        if (bestCandidate) {
+          parsed = { slug: bestCandidate.toLowerCase() }
+        }
+        else {
+          console.error('AI response parsing failed. Raw content:', content)
+          throw createError({
+            statusCode: 500,
+            statusMessage: 'Invalid AI response format',
+          })
+        }
       }
     }
   }

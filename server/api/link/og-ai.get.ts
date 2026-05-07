@@ -89,7 +89,7 @@ export default eventHandler(async (event) => {
   let parsed = destr(content)
 
   // Ensure we always return an object with title and description properties
-  if (typeof parsed === 'string' || parsed === null) {
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
     // Attempt to extract title and description as best effort from the raw content
     // E.g. "Title: My Title\nDescription: My description"
     const titleMatch = content.match(/title:\s*([^\n]+)/i) || content.match(/"title"\s*:\s*"((?:[^"\\]|\\.)+)"/)
@@ -97,11 +97,12 @@ export default eventHandler(async (event) => {
 
     if (titleMatch && titleMatch[1] && descMatch && descMatch[1]) {
       parsed = {
-        title: titleMatch[1].trim(),
-        description: descMatch[1].trim(),
+        title: titleMatch[1].replace(/^["']|["']$/g, '').trim(),
+        description: descMatch[1].replace(/^["']|["']$/g, '').trim(),
       }
     }
     else {
+      console.error('AI OG response parsing failed. Raw content:', content)
       throw createError({
         statusCode: 500,
         statusMessage: 'Invalid AI response format',
