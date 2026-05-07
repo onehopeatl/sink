@@ -67,10 +67,17 @@ export default eventHandler(async (event) => {
   }) as AiChatResponse
 
   let content = response.response ?? response.choices?.[0]?.message?.content ?? ''
-  // Strip markdown code block wrapper (e.g. ```json\n{...}\n```)
-  const codeBlockMatch = content.match(/```\w*\n([^`]+)```/)
-  if (codeBlockMatch?.[1]) {
-    content = codeBlockMatch[1].trim()
+
+  const jsonMatch = content.match(/\{[\s\S]*\}/)
+  if (jsonMatch) {
+    content = jsonMatch[0]
+  }
+  else {
+    // Strip markdown code block wrapper (e.g. ```json\n{...}\n```)
+    const codeBlockMatch = content.match(/```\w*\n([^`]+)```/)
+    if (codeBlockMatch?.[1]) {
+      content = codeBlockMatch[1].trim()
+    }
   }
 
   return destr(content)
