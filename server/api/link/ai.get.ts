@@ -68,17 +68,60 @@ export default eventHandler(async (event) => {
 
   let content = response.response ?? response.choices?.[0]?.message?.content ?? ''
 
-  const jsonMatch = content.match(/\{[\s\S]*\}/)
-  if (jsonMatch) {
-    content = jsonMatch[0]
+  // 1. Try to strip markdown code block wrapper (e.g. ```json\n{...}\n```)
+  const codeBlockMatch = content.match(/```(?:json)?\n([\s\S]*?)```/)
+  if (codeBlockMatch?.[1]) {
+    content = codeBlockMatch[1].trim()
   }
   else {
-    // Strip markdown code block wrapper (e.g. ```json\n{...}\n```)
-    const codeBlockMatch = content.match(/```\w*\n([^`]+)```/)
-    if (codeBlockMatch?.[1]) {
-      content = codeBlockMatch[1].trim()
+    // 2. Try balanced brace extraction to handle trailing conversational text
+    const firstBrace = content.indexOf('{')
+    if (firstBrace !== -1) {
+      let depth = 0
+      for (let i = firstBrace; i < content.length; i++) {
+        if (content[i] === '{') {
+          depth++
+        }
+        else if (content[i] === '}') {
+          depth--
+          if (depth === 0) {
+            content = content.substring(firstBrace, i + 1)
+            break
+          }
+        }
+      }
     }
   }
 
-  return destr(content)
+  let parsed = destr(content)
+
+  // Ensure we always return an object with a slug property
+  if (typeof parsed === 'string') {
+    // Try regex fallback if destr fails
+    const slugMatch = content.match(/"slug"\s*:\s*"([^"]+)"/)
+    if (slugMatch && slugMatch[1]) {
+      parsed = { slug: slugMatch[1] }
+    }
+    else {
+      // Last resort fallback
+      const fallbackMatch = parsed.match(/[a-z0-9-]+/i)
+      if (fallbackMatch && fallbackMatch[0] && parsed.length < 50) {
+        parsed = { slug: fallbackMatch[0].toLowerCase() }
+      }
+      else {
+        throw createError({
+          statusCode: 500,
+          statusMessage: 'Invalid AI response format',
+        })
+      }
+    }
+  }
+  else if (!parsed || typeof parsed !== 'object' || !('slug' in parsed) || !parsed.slug) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'AI response missing slug property',
+    })
+  }
+
+  return parsed
 })
