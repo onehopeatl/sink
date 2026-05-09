@@ -1,21 +1,10 @@
 import type { ImportResult } from '../../shared/schemas/import'
 import type { ExportData } from '../../shared/schemas/link'
 import { generateMock } from '@anatine/zod-mock'
-import { env } from 'cloudflare:test'
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
-import { fetch, fetchWithAuth, postJson } from '../utils'
-
-const HASHED_PASSWORD_PREFIX = 'sink-pwd:v1:'
-const MASKED_PASSWORD_PREFIX = '__SINK_MASKED__'
-
-interface StoredLink {
-  password?: string
-}
-
-async function getStoredLink(slug: string) {
-  return await env.KV.get<StoredLink>(`link:${slug}`, { type: 'json' })
-}
+import { LINK_PASSWORD_HASH_PREFIX, LINK_PASSWORD_MASK_PREFIX } from '../../shared/utils/link-password'
+import { expectStoredHashedPassword, fetch, fetchWithAuth, getStoredLink, postJson } from '../utils'
 
 const linkSchema = z.object({
   url: z.string().url(),
@@ -65,15 +54,16 @@ describe.sequential('/api/link/export', () => {
 
     const createResponse = await postJson('/api/link/create', payload)
     expect(createResponse.status).toBe(201)
+    await expectStoredHashedPassword(payload.slug, password)
 
     const response = await fetchWithAuth('/api/link/export')
     expect(response.status).toBe(200)
 
     const data: ExportData = await response.json()
     const link = data.links.find(link => link.slug === payload.slug)
-    expect(link?.password?.startsWith(HASHED_PASSWORD_PREFIX), link?.password).toBe(true)
+    expect(link?.password?.startsWith(LINK_PASSWORD_HASH_PREFIX), link?.password).toBe(true)
     expect(link?.password).not.toBe(password)
-    expect(link?.password?.startsWith(MASKED_PASSWORD_PREFIX)).toBe(false)
+    expect(link?.password?.startsWith(LINK_PASSWORD_MASK_PREFIX)).toBe(false)
   })
 
   it('returns 401 when accessing without auth', async () => {
@@ -127,10 +117,7 @@ describe.sequential('/api/link/import', () => {
 
     const data: ImportResult = await response.json()
     expect(data.success).toBe(1)
-
-    const storedLink = await getStoredLink(payload.links[0].slug)
-    expect(storedLink?.password?.startsWith(HASHED_PASSWORD_PREFIX), storedLink?.password).toBe(true)
-    expect(storedLink?.password).not.toBe(password)
+    await expectStoredHashedPassword(payload.links[0].slug, password)
   })
 
   it('keeps already hashed password during import', async () => {
@@ -143,6 +130,7 @@ describe.sequential('/api/link/import', () => {
 
     const createResponse = await postJson('/api/link/create', sourcePayload)
     expect(createResponse.status).toBe(201)
+    await expectStoredHashedPassword(sourcePayload.slug, password)
 
     const exportResponse = await fetchWithAuth('/api/link/export')
     expect(exportResponse.status).toBe(200)
@@ -150,7 +138,7 @@ describe.sequential('/api/link/import', () => {
     const exportData: ExportData = await exportResponse.json()
     const exportedLink = exportData.links.find(link => link.slug === sourcePayload.slug)
     const exportedPassword = exportedLink?.password
-    expect(exportedPassword?.startsWith(HASHED_PASSWORD_PREFIX), exportedPassword).toBe(true)
+    expect(exportedPassword?.startsWith(LINK_PASSWORD_HASH_PREFIX), exportedPassword).toBe(true)
     if (!exportedPassword)
       throw new Error('Missing exported password')
 

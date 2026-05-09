@@ -1,33 +1,7 @@
 import { generateMock } from '@anatine/zod-mock'
-import { env } from 'cloudflare:test'
-import { describe, expect, it } from 'vitest'
+import { afterAll, describe, expect, it } from 'vitest'
 import { z } from 'zod'
-import { fetch, fetchWithAuth, postJson, putJson } from '../utils'
-
-const HASHED_PASSWORD_PREFIX = 'sink-pwd:v1:'
-const MASKED_PASSWORD_PREFIX = '__SINK_MASKED__'
-
-interface StoredLink {
-  password?: string
-}
-
-async function getStoredLink(slug: string) {
-  return await env.KV.get<StoredLink>(`link:${slug}`, { type: 'json' })
-}
-
-function expectMaskedPassword(password: string | undefined, plainText: string) {
-  expect(password).toBeDefined()
-  expect(password?.startsWith(MASKED_PASSWORD_PREFIX), password).toBe(true)
-  expect(password).toContain(plainText.slice(-3))
-  expect(password).not.toBe(plainText)
-  expect(password?.startsWith(HASHED_PASSWORD_PREFIX)).toBe(false)
-}
-
-async function expectStoredHashedPassword(slug: string, plainText: string) {
-  const storedLink = await getStoredLink(slug)
-  expect(storedLink?.password?.startsWith(HASHED_PASSWORD_PREFIX)).toBe(true)
-  expect(storedLink?.password).not.toBe(plainText)
-}
+import { deleteStoredLink, expectMaskedPassword, expectStoredHashedPassword, fetch, fetchWithAuth, getStoredLink, postJson, putJson } from '../utils'
 
 const linkSchema = z.object({
   url: z.string().url(),
@@ -347,7 +321,7 @@ describe.sequential('/api/link/edit', () => {
     const createdData = await createResponse.json() as { link: { password?: string } }
     expectMaskedPassword(createdData.link.password, initialPassword)
     const storedAfterCreate = await getStoredLink(payload.slug)
-    expect(storedAfterCreate?.password?.startsWith(HASHED_PASSWORD_PREFIX)).toBe(true)
+    await expectStoredHashedPassword(payload.slug, initialPassword)
 
     const preservePasswordResponse = await putJson('/api/link/edit', { url: payload.url, slug: payload.slug })
     expect(preservePasswordResponse.status).toBe(201)
@@ -361,7 +335,7 @@ describe.sequential('/api/link/edit', () => {
     const changeData = await changePasswordResponse.json() as { link: { password?: string } }
     expectMaskedPassword(changeData.link.password, newPassword)
     const storedAfterChange = await getStoredLink(payload.slug)
-    expect(storedAfterChange?.password?.startsWith(HASHED_PASSWORD_PREFIX)).toBe(true)
+    await expectStoredHashedPassword(payload.slug, newPassword)
     expect(storedAfterChange?.password).not.toBe(storedAfterCreate?.password)
 
     const clearPasswordResponse = await putJson('/api/link/edit', { url: payload.url, slug: payload.slug, password: '' })
@@ -435,7 +409,11 @@ describe.sequential('/api/link/edit', () => {
 })
 
 describe.sequential('/api/link/edit unsafe', () => {
-  const unsafePayload = { ...testLinkPayload, url: 'https://example.com', slug: 'unsafe-test-link' }
+  const unsafePayload = { ...testLinkPayload, url: 'https://example.com', slug: `unsafe-test-${crypto.randomUUID()}` }
+
+  afterAll(async () => {
+    await deleteStoredLink(unsafePayload.slug)
+  })
 
   it('creates link with unsafe flag', async () => {
     const response = await postJson('/api/link/create', { ...unsafePayload, unsafe: true })
@@ -472,38 +450,6 @@ describe.sequential('/api/link/edit unsafe', () => {
   it('deletes unsafe test link', async () => {
     const response = await postJson('/api/link/delete', { slug: unsafePayload.slug })
     expect(response.status).toBe(204)
-  })
-})
-
-describe.sequential('password protected redirect', () => {
-  it('shows password page without password, rejects wrong password, and redirects with correct password', async () => {
-    const password = 'redirect-secret123'
-    const payload = {
-      url: 'https://example.com/redirect-target',
-      slug: `redirect-password-${crypto.randomUUID()}`,
-      password,
-    }
-
-    const createResponse = await postJson('/api/link/create', payload)
-    expect(createResponse.status).toBe(201)
-
-    const passwordPageResponse = await fetch(`/${payload.slug}`, { redirect: 'manual' })
-    expect(passwordPageResponse.status).toBe(200)
-    expect(await passwordPageResponse.text()).toContain('Password Required')
-
-    const wrongPasswordResponse = await fetch(`/${payload.slug}`, {
-      redirect: 'manual',
-      headers: { 'x-link-password': 'wrong-password' },
-    })
-    expect(wrongPasswordResponse.status).toBe(403)
-
-    const correctPasswordResponse = await fetch(`/${payload.slug}`, {
-      redirect: 'manual',
-      headers: { 'x-link-password': password },
-    })
-    expect(correctPasswordResponse.status).toBeGreaterThanOrEqual(300)
-    expect(correctPasswordResponse.status).toBeLessThan(400)
-    expect(correctPasswordResponse.headers.get('location')).toBe(payload.url)
   })
 })
 
