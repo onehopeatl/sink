@@ -47,8 +47,10 @@ const form = useForm({
     try {
       const geoRecord: Record<string, string> = {}
       value.geo?.forEach((g) => {
-        if (g.country && g.url) {
-          geoRecord[g.country.toUpperCase()] = g.url
+        const country = g.country.trim().toUpperCase()
+        const url = g.url.trim()
+        if (country && url) {
+          geoRecord[country] = url
         }
       })
       const linkData = {

@@ -21,6 +21,18 @@ const props = defineProps<{
 const datePickerOpen = ref(false)
 const { locale } = useI18n()
 
+type GeoRoute = LinkFormData['geo'][number]
+
+function updateGeoRoute(routes: GeoRoute[], index: number | string, value: Partial<GeoRoute>) {
+  const targetIndex = Number(index)
+  return routes.map((route, routeIndex) => routeIndex === targetIndex ? { ...route, ...value } : route)
+}
+
+function removeGeoRoute(routes: GeoRoute[], index: number | string) {
+  const targetIndex = Number(index)
+  return routes.filter((_, routeIndex) => routeIndex !== targetIndex)
+}
+
 // Compute default open items based on existing values
 const defaultOpenItems = computed(() => {
   const items: string[] = []
@@ -296,29 +308,24 @@ const defaultOpenItems = computed(() => {
         <FieldGroup>
           <props.form.Field v-slot="{ field }" name="geo">
             <div class="space-y-2">
-              <div class="flex items-center">
-                <a
-                  href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements" target="_blank" rel="noopener noreferrer" class="
-                    text-xs text-muted-foreground underline underline-offset-2
-                    transition-colors
-                    hover:text-foreground
-                  "
-                >
-                  {{ $t('links.form.find_country_code') }}
-                </a>
-              </div>
               <div
                 v-for="(item, i) in field.state.value" :key="i" class="
-                  flex items-start gap-2
+                  flex flex-col gap-2
+                  sm:flex-row sm:items-start
                 "
               >
-                <Field class="w-24">
-                  <Input
+                <Field
+                  class="
+                    w-full
+                    sm:w-56
+                  "
+                >
+                  <DashboardLinksEditorCountrySelect
                     :model-value="item.country"
-                    :placeholder="$t('links.form.country_code')"
-                    maxlength="2"
-                    autocomplete="off"
-                    @input="field.handleChange(field.state.value.map((v: any, idx: number) => idx === i ? { ...v, country: ($event.target as HTMLInputElement).value.toUpperCase() } : v))"
+                    :placeholder="$t('links.form.select_country')"
+                    :search-placeholder="$t('links.form.search_country')"
+                    :empty-text="$t('links.form.no_country_found')"
+                    @update:model-value="field.handleChange(updateGeoRoute(field.state.value, i, { country: $event }))"
                   />
                 </Field>
                 <Field class="flex-1">
@@ -326,10 +333,10 @@ const defaultOpenItems = computed(() => {
                     :model-value="item.url"
                     placeholder="https://..."
                     autocomplete="url"
-                    @input="field.handleChange(field.state.value.map((v: any, idx: number) => idx === i ? { ...v, url: ($event.target as HTMLInputElement).value } : v))"
+                    @input="field.handleChange(updateGeoRoute(field.state.value, i, { url: ($event.target as HTMLInputElement).value }))"
                   />
                 </Field>
-                <Button type="button" variant="ghost" size="icon" @click="field.handleChange(field.state.value.filter((_: any, idx: number) => idx !== i))">
+                <Button type="button" variant="ghost" size="icon" @click="field.handleChange(removeGeoRoute(field.state.value, i))">
                   <Trash2 class="h-4 w-4 text-muted-foreground" />
                 </Button>
               </div>
