@@ -40,6 +40,37 @@ describe('/api/link/ai', () => {
   })
 })
 
+describe('/api/link/og-ai', () => {
+  it('generates AI metadata for valid URL', async () => {
+    const response = await fetchWithAuth(`/api/link/og-ai?url=${encodeURIComponent('https://sink.cool')}`)
+
+    expect([200, 501]).toContain(response.status)
+
+    if (response.status === 200) {
+      const data = await response.json() as { title: string, description: string }
+      expect(data).toHaveProperty('title')
+      expect(data).toHaveProperty('description')
+      expect(typeof data.title).toBe('string')
+      expect(typeof data.description).toBe('string')
+    }
+  }, 30000)
+
+  it('returns 400 when url parameter is missing', async () => {
+    const response = await fetchWithAuth('/api/link/og-ai')
+    expect(response.status).toBe(400)
+  })
+
+  it('returns 400 when url parameter is invalid', async () => {
+    const response = await fetchWithAuth('/api/link/og-ai?url=not-a-valid-url')
+    expect(response.status).toBe(400)
+  })
+
+  it('returns 401 when accessing without auth', async () => {
+    const response = await fetch('/api/link/og-ai')
+    expect(response.status).toBe(401)
+  })
+})
+
 describe.sequential('/api/link/create', () => {
   it('creates new link with valid data', async () => {
     const response = await postJson('/api/link/create', testLinkPayload)
