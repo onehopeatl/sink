@@ -181,19 +181,11 @@ async function aiOg() {
           </props.form.Field>
 
           <props.form.Field v-slot="{ field }" name="description">
-            <Field>
-              <FieldLabel :for="field.name">
-                {{ $t('links.form.og_description') }}
-              </FieldLabel>
-              <Textarea
-                :id="field.name"
-                :name="field.name"
-                :model-value="field.state.value"
-                :placeholder="$t('links.form.og_description_placeholder')"
-                @blur="field.handleBlur"
-                @input="field.handleChange(($event.target as HTMLTextAreaElement).value)"
-              />
-            </Field>
+            <DashboardLinksEditorFieldTextarea
+              :field="field"
+              :label="$t('links.form.og_description')"
+              :placeholder="$t('links.form.og_description_placeholder')"
+            />
           </props.form.Field>
 
           <props.form.Field v-slot="{ field }" name="image">
@@ -217,63 +209,27 @@ async function aiOg() {
       <AccordionContent class="px-1">
         <FieldGroup>
           <props.form.Field v-slot="{ field }" name="redirectWithQuery">
-            <Field>
-              <div class="flex items-center justify-between">
-                <div class="space-y-0.5">
-                  <FieldLabel :for="field.name">
-                    {{ $t('links.form.redirect_with_query_label') }}
-                  </FieldLabel>
-                  <p class="text-xs text-muted-foreground">
-                    {{ $t('links.form.redirect_with_query_description') }}
-                  </p>
-                </div>
-                <Switch
-                  :id="field.name"
-                  :model-value="field.state.value"
-                  @update:model-value="field.handleChange"
-                />
-              </div>
-            </Field>
+            <DashboardLinksEditorFieldSwitch
+              :field="field"
+              :label="$t('links.form.redirect_with_query_label')"
+              :description="$t('links.form.redirect_with_query_description')"
+            />
           </props.form.Field>
 
           <props.form.Field v-slot="{ field }" name="cloaking">
-            <Field>
-              <div class="flex items-center justify-between">
-                <div class="space-y-0.5">
-                  <FieldLabel :for="field.name">
-                    {{ $t('links.form.cloaking_label') }}
-                  </FieldLabel>
-                  <p class="text-xs text-muted-foreground">
-                    {{ $t('links.form.cloaking_description') }}
-                  </p>
-                </div>
-                <Switch
-                  :id="field.name"
-                  :model-value="field.state.value"
-                  @update:model-value="field.handleChange"
-                />
-              </div>
-            </Field>
+            <DashboardLinksEditorFieldSwitch
+              :field="field"
+              :label="$t('links.form.cloaking_label')"
+              :description="$t('links.form.cloaking_description')"
+            />
           </props.form.Field>
 
           <props.form.Field v-slot="{ field }" name="unsafe">
-            <Field>
-              <div class="flex items-center justify-between">
-                <div class="space-y-0.5">
-                  <FieldLabel :for="field.name">
-                    {{ $t('links.form.unsafe_label') }}
-                  </FieldLabel>
-                  <p class="text-xs text-muted-foreground">
-                    {{ $t('links.form.unsafe_description') }}
-                  </p>
-                </div>
-                <Switch
-                  :id="field.name"
-                  :model-value="field.state.value"
-                  @update:model-value="field.handleChange"
-                />
-              </div>
-            </Field>
+            <DashboardLinksEditorFieldSwitch
+              :field="field"
+              :label="$t('links.form.unsafe_label')"
+              :description="$t('links.form.unsafe_description')"
+            />
           </props.form.Field>
 
           <props.form.Field v-slot="{ field }" name="password">
@@ -310,25 +266,15 @@ async function aiOg() {
             name="google"
             :validators="{ onBlur: validateOptionalUrl }"
           >
-            <Field :data-invalid="isInvalid(field)">
-              <FieldLabel :for="field.name">
-                {{ $t('links.form.google_play') }}
-              </FieldLabel>
-              <Input
-                :id="field.name"
-                :name="field.name"
-                :model-value="field.state.value"
-                :aria-invalid="getAriaInvalid(field)"
-                placeholder="https://play.google.com/store/apps/…"
-                autocomplete="off"
-                @blur="field.handleBlur"
-                @input="field.handleChange(($event.target as HTMLInputElement).value)"
-              />
-              <FieldError
-                v-if="isInvalid(field)"
-                :errors="formatErrors(field.state.meta.errors)"
-              />
-            </Field>
+            <DashboardLinksEditorFieldInput
+              :field="field"
+              :label="$t('links.form.google_play')"
+              placeholder="https://play.google.com/store/apps/…"
+              autocomplete="off"
+              :invalid="isInvalid(field)"
+              :aria-invalid="getAriaInvalid(field)"
+              :errors="formatErrors(field.state.meta.errors)"
+            />
           </props.form.Field>
 
           <props.form.Field
@@ -336,25 +282,15 @@ async function aiOg() {
             name="apple"
             :validators="{ onBlur: validateOptionalUrl }"
           >
-            <Field :data-invalid="isInvalid(field)">
-              <FieldLabel :for="field.name">
-                {{ $t('links.form.app_store') }}
-              </FieldLabel>
-              <Input
-                :id="field.name"
-                :name="field.name"
-                :model-value="field.state.value"
-                :aria-invalid="getAriaInvalid(field)"
-                placeholder="https://apps.apple.com/app/…"
-                autocomplete="off"
-                @blur="field.handleBlur"
-                @input="field.handleChange(($event.target as HTMLInputElement).value)"
-              />
-              <FieldError
-                v-if="isInvalid(field)"
-                :errors="formatErrors(field.state.meta.errors)"
-              />
-            </Field>
+            <DashboardLinksEditorFieldInput
+              :field="field"
+              :label="$t('links.form.app_store')"
+              placeholder="https://apps.apple.com/app/…"
+              autocomplete="off"
+              :invalid="isInvalid(field)"
+              :aria-invalid="getAriaInvalid(field)"
+              :errors="formatErrors(field.state.meta.errors)"
+            />
           </props.form.Field>
         </FieldGroup>
       </AccordionContent>

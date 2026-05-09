@@ -62,11 +62,7 @@ const currentDatePreset = form.useStore(state => state.values.datePreset)
 const dateRangeLabel = computed(() => `${shortDate(currentStartAt.value, locale.value)} - ${shortDate(currentEndAt.value, locale.value)}`)
 
 const slugFilterSchema = z.string().max(2048)
-
-function validateSlugFilter({ value }: { value: string }) {
-  const result = slugFilterSchema.safeParse(value)
-  return result.success ? undefined : result.error.errors[0]?.message
-}
+const validateSlugFilter = makeZodValidator(slugFilterSchema)
 
 function isDateDisabled(dateValue: DateValue) {
   return dateValue.toDate(tz) > new Date()

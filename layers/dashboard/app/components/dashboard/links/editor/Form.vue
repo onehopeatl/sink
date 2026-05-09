@@ -101,17 +101,10 @@ const form = useForm({
   },
 })
 
-function makeValidator<T>(schema: z.ZodSchema<T>) {
-  return ({ value }: { value: T }) => {
-    const result = schema.safeParse(value)
-    return result.success ? undefined : result.error.errors[0]?.message
-  }
-}
-
-const validateUrl = makeValidator(urlValidator)
-const validateSlug = makeValidator(slugValidator)
-const validateComment = makeValidator(commentValidator)
-const validateOptionalUrl = makeValidator(optionalUrlValidator)
+const validateUrl = makeZodValidator(urlValidator)
+const validateSlug = makeZodValidator(slugValidator)
+const validateComment = makeZodValidator(commentValidator)
+const validateOptionalUrl = makeZodValidator(optionalUrlValidator)
 
 const utmBuilderOpen = ref(false)
 
@@ -288,23 +281,13 @@ defineExpose({ randomSlug })
         name="comment"
         :validators="{ onBlur: validateComment }"
       >
-        <Field :data-invalid="isInvalid(field)">
-          <FieldLabel :for="field.name">
-            {{ $t('links.form.comment') }}
-          </FieldLabel>
-          <Textarea
-            :id="field.name"
-            :name="field.name"
-            :model-value="field.state.value"
-            :aria-invalid="getAriaInvalid(field)"
-            @blur="field.handleBlur"
-            @input="field.handleChange(($event.target as HTMLTextAreaElement).value)"
-          />
-          <FieldError
-            v-if="isInvalid(field)"
-            :errors="formatErrors(field.state.meta.errors)"
-          />
-        </Field>
+        <DashboardLinksEditorFieldTextarea
+          :field="field"
+          :label="$t('links.form.comment')"
+          :invalid="isInvalid(field)"
+          :aria-invalid="getAriaInvalid(field)"
+          :errors="formatErrors(field.state.meta.errors)"
+        />
       </form.Field>
     </FieldGroup>
 
