@@ -57,53 +57,13 @@ export default eventHandler(async (event) => {
     })
   }
 
-  // Auto-detect unsafe URL when URL changes and unsafe not explicitly set
-  if (link.unsafe === undefined && link.url !== existingLink.url) {
-    const safe = await isSafeUrl(event, link.url)
-    if (!safe) {
-      link.unsafe = true
-    }
-  }
+  if (link.url !== existingLink.url)
+    await detectUnsafeLink(event, link)
 
-  const { password, ...linkWithoutPassword } = link
-  const newLink = {
-    ...existingLink,
-    ...linkWithoutPassword,
-    id: existingLink.id,
-    createdAt: existingLink.createdAt,
-    updatedAt: Math.floor(Date.now() / 1000),
-  }
-  const optionalFields = [
-    'comment',
-    'title',
-    'description',
-    'image',
-    'apple',
-    'google',
-    'cloaking',
-    'redirectWithQuery',
-    'expiration',
-    'unsafe',
-    'geo',
-  ] as const
-  for (const field of optionalFields) {
-    if (link[field] === undefined) {
-      delete newLink[field]
-    }
-  }
-
-  if (password === '') {
-    delete newLink.password
-  }
-  else if (password !== undefined) {
-    newLink.password = await hashLinkPassword(password)
-  }
-  else if (newLink.password) {
-    newLink.password = await normalizeLinkPasswordForStorage(newLink.password)
-  }
+  const newLink = mergeEditableLink(existingLink, link)
+  await applyEditableLinkPassword(newLink, link.password)
 
   await putLink(event, newLink)
   setResponseStatus(event, 201)
-  const shortLink = buildShortLink(event, newLink.slug)
-  return { link: sanitizeLinkPassword(newLink), shortLink }
+  return buildLinkResponse(event, newLink)
 })

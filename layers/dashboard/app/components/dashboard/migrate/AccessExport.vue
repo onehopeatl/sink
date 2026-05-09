@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { DateRange, DateValue } from 'reka-ui'
-import { getLocalTimeZone, now, startOfMonth, startOfWeek } from '@internationalized/date'
+import { getLocalTimeZone } from '@internationalized/date'
 import { useForm } from '@tanstack/vue-form'
 import { Download, Loader } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
@@ -19,22 +19,7 @@ const openCustomDateRange = ref(false)
 const customDateRange = ref<DateRange | undefined>()
 const isExporting = ref(false)
 
-function computeDateRange(name: string): [number, number] {
-  const currentTime = now(tz)
-  const presets: Record<string, () => [number, number]> = {
-    'today': () => [date2unix(currentTime, 'start'), date2unix(currentTime)],
-    'last-24h': () => [date2unix(currentTime.subtract({ hours: 24 })), date2unix(currentTime)],
-    'this-week': () => [date2unix(startOfWeek(currentTime, locale.value || getLocale()), 'start'), date2unix(currentTime)],
-    'last-7d': () => [date2unix(currentTime.subtract({ days: 7 })), date2unix(currentTime)],
-    'this-month': () => [date2unix(startOfMonth(currentTime), 'start'), date2unix(currentTime)],
-    'last-30d': () => [date2unix(currentTime.subtract({ days: 30 })), date2unix(currentTime)],
-    'last-90d': () => [date2unix(currentTime.subtract({ days: 90 })), date2unix(currentTime)],
-  }
-
-  return (presets[name] ?? presets['last-7d']!)()
-}
-
-const defaultDateRange = computeDateRange('last-7d')
+const defaultDateRange = computeDateRange('last-7d', locale.value)
 const defaultValues: AccessExportForm = {
   datePreset: 'last-7d',
   startAt: defaultDateRange[0],
@@ -77,11 +62,7 @@ const currentDatePreset = form.useStore(state => state.values.datePreset)
 const dateRangeLabel = computed(() => `${shortDate(currentStartAt.value, locale.value)} - ${shortDate(currentEndAt.value, locale.value)}`)
 
 const slugFilterSchema = z.string().max(2048)
-
-function validateSlugFilter({ value }: { value: string }) {
-  const result = slugFilterSchema.safeParse(value)
-  return result.success ? undefined : result.error.errors[0]?.message
-}
+const validateSlugFilter = makeZodValidator(slugFilterSchema)
 
 function isDateDisabled(dateValue: DateValue) {
   return dateValue.toDate(tz) > new Date()
@@ -107,7 +88,7 @@ function onPresetChange(value: string | number | bigint | Record<string, unknown
   }
 
   form.setFieldValue('datePreset', value)
-  setDateRange(computeDateRange(value))
+  setDateRange(computeDateRange(value, locale.value))
 }
 
 function updateCustomDateRange(value: DateRange) {
