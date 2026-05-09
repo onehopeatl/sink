@@ -1,3 +1,4 @@
+import type { H3Event } from 'h3'
 import { destr } from 'destr'
 import { z } from 'zod'
 
@@ -13,6 +14,13 @@ defineRouteMeta({
         schema: { type: 'string', format: 'uri' },
         description: 'The URL to generate OpenGraph metadata for',
       },
+      {
+        name: 'locale',
+        in: 'query',
+        required: false,
+        schema: { type: 'string' },
+        description: 'Preferred locale for the generated metadata',
+      },
     ],
   },
 })
@@ -22,10 +30,60 @@ interface AiChatResponse {
   choices?: { message?: { content?: string } }[]
 }
 
+function stripCodeFence(content: string): string {
+  const trimmed = content.trim()
+  if (!trimmed.startsWith('```') || !trimmed.endsWith('```')) {
+    return trimmed
+  }
+
+  const lines = trimmed.split('\n')
+  const firstLine = lines[0]?.trim()
+  if (lines.length < 2 || (firstLine !== '```' && firstLine !== '```json')) {
+    return trimmed
+  }
+
+  lines.shift()
+  lines.pop()
+  return lines.join('\n').trim()
+}
+
+function fallbackMetadata(url: string): { title: string, description: string } {
+  try {
+    const { hostname } = new URL(url)
+
+    return {
+      title: hostname.replace(/^www\./, ''),
+      description: `Short link for ${url}`,
+    }
+  }
+  catch {
+    return {
+      title: 'Short Link',
+      description: 'Check out this link on Sink.',
+    }
+  }
+}
+
+function resolveMetadataLocale(event: H3Event, locale?: string): string {
+  const value = locale?.trim()
+  if (!value) {
+    return resolveRedirectLocale(event)
+  }
+
+  try {
+    return Intl.getCanonicalLocales(value)[0] || resolveRedirectLocale(event)
+  }
+  catch {
+    return resolveRedirectLocale(event)
+  }
+}
+
 export default eventHandler(async (event) => {
-  const url = (await getValidatedQuery(event, z.object({
+  const query = await getValidatedQuery(event, z.object({
     url: z.string().url(),
-  }).parse)).url
+    locale: z.string().optional(),
+  }).parse)
+  const { url } = query
   const { cloudflare } = event.context
   const { AI } = cloudflare.env
 
@@ -34,6 +92,7 @@ export default eventHandler(async (event) => {
   }
 
   const { aiOgPrompt, aiModel } = useRuntimeConfig(event)
+  const locale = resolveMetadataLocale(event, query.locale)
 
   const markdown = await fetchPageMarkdown(event, url, AI)
   const userContent = markdown
@@ -41,7 +100,7 @@ export default eventHandler(async (event) => {
     : url
 
   const messages = [
-    { role: 'system', content: aiOgPrompt },
+    { role: 'system', content: `${aiOgPrompt}\nGenerate the title and description in the language matching this locale: ${locale}.` },
 
     { role: 'user', content: 'https://www.cloudflare.com/' },
     { role: 'assistant', content: '{"title": "Cloudflare", "description": "Cloudflare is a global network designed to make everything you connect to the Internet secure, private, fast, and reliable."}' },
@@ -54,127 +113,24 @@ export default eventHandler(async (event) => {
 
   const response = await AI.run(aiModel as keyof AiModels, {
     messages,
+    chat_template_kwargs: {
+      enable_thinking: false,
+      thinking: false,
+    },
   }) as AiChatResponse
 
-  let content = response.response ?? response.choices?.[0]?.message?.content ?? ''
+  const content = response.response ?? response.choices?.[0]?.message?.content ?? ''
+  const fallback = fallbackMetadata(url)
+  const parsed = content.trim() ? destr(stripCodeFence(content)) : undefined
+  const result = typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
+    ? parsed as Record<string, unknown>
+    : {}
 
-  if (!content || content.trim() === '') {
-    console.error('AI OG response is empty. Fallback initiated.')
-    try {
-      const urlObj = new URL(url)
-      const domain = urlObj.hostname.replace('www.', '')
-      return {
-        title: domain,
-        description: `Short link for ${url}`,
-      }
-    }
-    catch {
-      return {
-        title: 'Short Link',
-        description: 'Check out this link on Sink.',
-      }
-    }
-  }
-
-  // 1. Try to strip markdown code block wrapper (e.g. ```json\n{...}\n```)
-  const codeBlockMatch = content.match(/```(?:json)?\n([\s\S]*?)```/)
-  if (codeBlockMatch?.[1]) {
-    content = codeBlockMatch[1].trim()
-  }
-  else {
-    // 2. Try balanced brace extraction to handle trailing conversational text
-    const firstBrace = content.indexOf('{')
-    if (firstBrace !== -1) {
-      let depth = 0
-      for (let i = firstBrace; i < content.length; i++) {
-        if (content[i] === '{') {
-          depth++
-        }
-        else if (content[i] === '}') {
-          depth--
-          if (depth === 0) {
-            content = content.substring(firstBrace, i + 1)
-            break
-          }
-        }
-      }
-    }
-  }
-
-  let parsed = destr(content)
-
-  // Ensure we always return an object with title and description properties
-  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-    // Attempt to extract title and description as best effort from the raw content
-    // Check multiple common formats: JSON-like, YAML-like, or plain text labels
-    const titlePatterns = [
-      /"title"\s*:\s*"([^"]+)"/,
-      /title:\s*([^\n]+)/i,
-      /^title\s*=\s*(.*)/im,
-      /<title>([^<]+)<\/title>/i,
-    ]
-
-    const descPatterns = [
-      /"description"\s*:\s*"([^"]+)"/,
-      /description:\s*([^\n]+)/i,
-      /^description\s*=\s*(.*)/im,
-    ]
-
-    let extractedTitle = ''
-    let extractedDesc = ''
-
-    for (const pattern of titlePatterns) {
-      const match = content.match(pattern)
-      if (match?.[1]) {
-        extractedTitle = match[1].replace(/^["']|["']$/g, '').trim()
-        break
-      }
-    }
-
-    for (const pattern of descPatterns) {
-      const match = content.match(pattern)
-      if (match?.[1]) {
-        extractedDesc = match[1].replace(/^["']|["']$/g, '').trim()
-        break
-      }
-    }
-
-    if (extractedTitle || extractedDesc) {
-      parsed = {
-        title: extractedTitle || 'Link',
-        description: extractedDesc || 'No description provided.',
-      }
-    }
-    else {
-      console.error('AI OG response parsing failed. Final content:', content)
-      // Final fallback instead of throwing
-      try {
-        const urlObj = new URL(url)
-        parsed = {
-          title: urlObj.hostname,
-          description: `Short link for ${url}`,
-        }
-      }
-      catch {
-        parsed = {
-          title: 'Short Link',
-          description: 'No metadata available.',
-        }
-      }
-    }
-  }
-
-  // Final validation of the parsed object
-  const result = parsed as Record<string, any>
-  if (typeof result !== 'object' || !result.title || !result.description) {
-    throw createError({
-      statusCode: 500,
-      statusMessage: 'AI response missing title or description property',
-    })
-  }
+  const title = String(result.title ?? '').trim() || fallback.title
+  const description = String(result.description ?? '').trim() || fallback.description
 
   return {
-    title: String(result.title),
-    description: String(result.description),
+    title,
+    description,
   }
 })
