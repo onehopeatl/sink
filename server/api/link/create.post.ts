@@ -66,8 +66,12 @@ export default eventHandler(async (event) => {
     })
   }
 
+  if (link.password) {
+    link.password = await hashLinkPassword(link.password)
+  }
+
   await putLink(event, link)
   setResponseStatus(event, 201)
   const shortLink = buildShortLink(event, link.slug)
-  return { link, shortLink }
+  return { link: sanitizeLinkPassword(link), shortLink }
 })

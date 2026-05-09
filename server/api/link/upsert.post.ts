@@ -47,11 +47,15 @@ export default eventHandler(async (event) => {
   const existingLink = await getLink(event, link.slug)
   if (existingLink) {
     const shortLink = buildShortLink(event, link.slug)
-    return { link: existingLink, shortLink, status: 'existing' }
+    return { link: sanitizeLinkPassword(existingLink), shortLink, status: 'existing' }
+  }
+
+  if (link.password) {
+    link.password = await hashLinkPassword(link.password)
   }
 
   await putLink(event, link)
   setResponseStatus(event, 201)
   const shortLink = buildShortLink(event, link.slug)
-  return { link, shortLink, status: 'created' }
+  return { link: sanitizeLinkPassword(link), shortLink, status: 'created' }
 })

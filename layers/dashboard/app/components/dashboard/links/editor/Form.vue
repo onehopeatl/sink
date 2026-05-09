@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { AnyFieldApi, Link, LinkFormData } from '@/types'
 import { LinkSchema, nanoid } from '#shared/schemas/link'
+import { isMaskedLinkPassword } from '#shared/utils/link-password'
 import { useForm } from '@tanstack/vue-form'
 import { Shuffle, Sparkles } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
@@ -23,6 +24,16 @@ const commentValidator = z.string().max(500).optional()
 const optionalUrlValidator = z.string().trim().url().max(2048).optional().or(z.literal(''))
 
 const generateSlug = nanoid()
+
+function getPasswordSubmitValue(password: string): string | undefined {
+  if (isMaskedLinkPassword(password))
+    return undefined
+
+  if (password === '')
+    return props.isEdit ? '' : undefined
+
+  return password
+}
 
 const form = useForm({
   defaultValues: {
@@ -67,7 +78,7 @@ const form = useForm({
         image: value.image || undefined,
         cloaking: value.cloaking,
         redirectWithQuery: value.redirectWithQuery,
-        password: value.password || undefined,
+        password: getPasswordSubmitValue(value.password),
         unsafe: value.unsafe || undefined,
         geo: Object.keys(geoRecord).length > 0 ? geoRecord : undefined,
       }

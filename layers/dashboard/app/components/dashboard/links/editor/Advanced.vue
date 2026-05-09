@@ -2,6 +2,7 @@
 import type { DateValue } from '@internationalized/date'
 import type { Component } from 'vue'
 import type { AnyFieldApi, LinkFormData } from '@/types'
+import { isMaskedLinkPassword, LINK_PASSWORD_MASK_PREFIX } from '#shared/utils/link-password'
 import { today } from '@internationalized/date'
 import { CalendarIcon, Plus, Sparkles, Trash2 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
@@ -33,6 +34,12 @@ function updateGeoRoute(routes: GeoRoute[], index: number | string, value: Parti
 function removeGeoRoute(routes: GeoRoute[], index: number | string) {
   const targetIndex = Number(index)
   return routes.filter((_, routeIndex) => routeIndex !== targetIndex)
+}
+
+function formatPasswordDisplay(password: string) {
+  return isMaskedLinkPassword(password)
+    ? password.replace(LINK_PASSWORD_MASK_PREFIX, '')
+    : password
 }
 
 // Compute default open items based on existing values
@@ -280,8 +287,9 @@ async function aiOg() {
               <Input
                 :id="field.name"
                 :name="field.name"
-                :model-value="field.state.value"
+                :model-value="formatPasswordDisplay(field.state.value)"
                 :placeholder="$t('links.form.password_placeholder')"
+                :type="isMaskedLinkPassword(field.state.value) ? 'text' : 'password'"
                 autocomplete="off"
                 class="mt-1.5"
                 @blur="field.handleBlur"
