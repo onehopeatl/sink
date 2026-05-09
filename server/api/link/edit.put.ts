@@ -1,5 +1,9 @@
 import type { z } from 'zod'
-import { LinkSchema } from '#shared/schemas/link'
+import { EditLinkPasswordSchema, LinkSchema } from '#shared/schemas/link'
+
+const EditLinkSchema = LinkSchema.extend({
+  password: EditLinkPasswordSchema,
+})
 
 defineRouteMeta({
   openAPI: {
@@ -43,7 +47,7 @@ export default eventHandler(async (event) => {
       statusText: 'Preview mode cannot edit links.',
     })
   }
-  const link = await readValidatedBody(event, LinkSchema.parse)
+  const link = await readValidatedBody(event, EditLinkSchema.parse)
 
   const existingLink: z.infer<typeof LinkSchema> | null = await getLink(event, link.slug)
   if (!existingLink) {
@@ -61,9 +65,10 @@ export default eventHandler(async (event) => {
     }
   }
 
+  const { password, ...linkWithoutPassword } = link
   const newLink = {
     ...existingLink,
-    ...link,
+    ...linkWithoutPassword,
     id: existingLink.id,
     createdAt: existingLink.createdAt,
     updatedAt: Math.floor(Date.now() / 1000),
@@ -77,7 +82,6 @@ export default eventHandler(async (event) => {
     'google',
     'cloaking',
     'redirectWithQuery',
-    'password',
     'expiration',
     'unsafe',
     'geo',
@@ -87,8 +91,19 @@ export default eventHandler(async (event) => {
       delete newLink[field]
     }
   }
+
+  if (password === '') {
+    delete newLink.password
+  }
+  else if (password !== undefined) {
+    newLink.password = await hashLinkPassword(password)
+  }
+  else if (newLink.password) {
+    newLink.password = await normalizeLinkPasswordForStorage(newLink.password)
+  }
+
   await putLink(event, newLink)
   setResponseStatus(event, 201)
   const shortLink = buildShortLink(event, newLink.slug)
-  return { link: newLink, shortLink }
+  return { link: sanitizeLinkPassword(newLink), shortLink }
 })
