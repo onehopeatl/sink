@@ -276,7 +276,8 @@
       "utm_content": "Contenu UTM",
       "utm_apply": "Appliquer",
       "utm_clear": "Effacer",
-      "utm_invalid_url": "Saisissez une URL valide pour prévisualiser et appliquer les paramètres UTM."
+      "utm_invalid_url": "Saisissez une URL valide pour prévisualiser et appliquer les paramètres UTM.",
+      "ai_og_generate": "Générer l'OpenGraph IA"
     },
     "sort": {
       "newest": "Les plus récents",
@@ -287,7 +288,9 @@
     },
     "update_failed": "Échec de la mise à jour du lien",
     "create_failed": "Échec de la création du lien",
-    "ai_slug_failed": "Échec de la génération du slug IA"
+    "ai_slug_failed": "Échec de la génération du slug IA",
+    "ai_og_failed": "Échec de la génération de l'OpenGraph IA",
+    "ai_og_success": "OpenGraph IA généré avec succès"
   },
   "migrate": {
     "backup": {

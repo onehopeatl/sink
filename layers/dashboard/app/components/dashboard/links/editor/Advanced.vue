@@ -3,13 +3,15 @@ import type { DateValue } from '@internationalized/date'
 import type { Component } from 'vue'
 import type { AnyFieldApi, LinkFormData } from '@/types'
 import { today } from '@internationalized/date'
-import { CalendarIcon, Plus, Trash2 } from 'lucide-vue-next'
+import { CalendarIcon, Plus, Sparkles, Trash2 } from 'lucide-vue-next'
+import { toast } from 'vue-sonner'
 import { cn } from '@/lib/utils'
 
 const props = defineProps<{
   form: {
     Field: Component
     getFieldValue: (name: keyof LinkFormData) => LinkFormData[keyof LinkFormData]
+    setFieldValue: (name: keyof LinkFormData, value: any) => void
   }
   validateOptionalUrl: (ctx: { value: string }) => string | undefined
   isInvalid: (field: AnyFieldApi) => boolean
@@ -19,7 +21,7 @@ const props = defineProps<{
 }>()
 
 const datePickerOpen = ref(false)
-const { locale } = useI18n()
+const { t, locale } = useI18n()
 
 type GeoRoute = LinkFormData['geo'][number]
 
@@ -54,6 +56,38 @@ const defaultOpenItems = computed(() => {
   }
   return items
 })
+
+const aiOgPending = ref(false)
+async function aiOg() {
+  const url = props.form.getFieldValue('url') as string
+  if (!url) {
+    return
+  }
+
+  aiOgPending.value = true
+  try {
+    const result = await useAPI<{ title?: string, description?: string }>('/api/link/og-ai', {
+      query: { url },
+    })
+
+    if (result.title) {
+      props.form.setFieldValue('title', result.title)
+    }
+    if (result.description) {
+      props.form.setFieldValue('description', result.description)
+    }
+    toast.success(t('links.ai_og_success'))
+  }
+  catch (error) {
+    console.error(error)
+    toast.error(t('links.ai_og_failed'), {
+      description: error instanceof Error ? error.message : String(error),
+    })
+  }
+  finally {
+    aiOgPending.value = false
+  }
+}
 </script>
 
 <template>
@@ -109,9 +143,25 @@ const defaultOpenItems = computed(() => {
         <FieldGroup>
           <props.form.Field v-slot="{ field }" name="title">
             <Field>
-              <FieldLabel :for="field.name">
-                {{ $t('links.form.og_title') }}
-              </FieldLabel>
+              <div class="flex items-center justify-between">
+                <FieldLabel :for="field.name">
+                  {{ $t('links.form.og_title') }}
+                </FieldLabel>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  class="h-auto w-auto p-0"
+                  :aria-label="$t('links.form.ai_og_generate')"
+                  :disabled="aiOgPending"
+                  @click="aiOg"
+                >
+                  <Sparkles
+                    class="h-4 w-4"
+                    :class="{ 'animate-bounce': aiOgPending }"
+                  />
+                </Button>
+              </div>
               <Input
                 :id="field.name"
                 :name="field.name"

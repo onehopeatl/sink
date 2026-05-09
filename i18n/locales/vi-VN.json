@@ -276,7 +276,8 @@
       "utm_content": "Nội dung UTM",
       "utm_apply": "Áp dụng",
       "utm_clear": "Xóa",
-      "utm_invalid_url": "Nhập URL hợp lệ để xem trước và áp dụng tham số UTM."
+      "utm_invalid_url": "Nhập URL hợp lệ để xem trước và áp dụng tham số UTM.",
+      "ai_og_generate": "Tạo AI OpenGraph"
     },
     "sort": {
       "newest": "Mới nhất trước",
@@ -287,7 +288,9 @@
     },
     "update_failed": "Cập nhật liên kết thất bại",
     "create_failed": "Tạo liên kết thất bại",
-    "ai_slug_failed": "Tạo slug AI thất bại"
+    "ai_slug_failed": "Tạo slug AI thất bại",
+    "ai_og_failed": "Không thể tạo AI OpenGraph",
+    "ai_og_success": "Tạo AI OpenGraph thành công"
   },
   "migrate": {
     "backup": {

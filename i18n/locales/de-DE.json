@@ -276,7 +276,8 @@
       "utm_content": "UTM-Inhalt",
       "utm_apply": "Anwenden",
       "utm_clear": "Löschen",
-      "utm_invalid_url": "Gib eine gültige URL ein, um UTM-Parameter in der Vorschau zu sehen und anzuwenden."
+      "utm_invalid_url": "Gib eine gültige URL ein, um UTM-Parameter in der Vorschau zu sehen und anzuwenden.",
+      "ai_og_generate": "KI-OpenGraph generieren"
     },
     "sort": {
       "newest": "Neueste zuerst",
@@ -287,7 +288,9 @@
     },
     "update_failed": "Link konnte nicht aktualisiert werden",
     "create_failed": "Link konnte nicht erstellt werden",
-    "ai_slug_failed": "KI-Slug konnte nicht generiert werden"
+    "ai_slug_failed": "KI-Slug konnte nicht generiert werden",
+    "ai_og_failed": "Fehler beim Generieren des KI-OpenGraph",
+    "ai_og_success": "KI-OpenGraph erfolgreich generiert"
   },
   "migrate": {
     "backup": {
