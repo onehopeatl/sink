@@ -3,7 +3,7 @@ import type { DateValue } from '@internationalized/date'
 import type { Component } from 'vue'
 import type { AnyFieldApi, LinkFormData } from '@/types'
 import { today } from '@internationalized/date'
-import { CalendarIcon } from 'lucide-vue-next'
+import { CalendarIcon, Plus, Trash2 } from 'lucide-vue-next'
 import { cn } from '@/lib/utils'
 
 const props = defineProps<{
@@ -35,6 +35,10 @@ const defaultOpenItems = computed(() => {
   }
   if (props.form.getFieldValue('cloaking') || props.form.getFieldValue('redirectWithQuery') || props.form.getFieldValue('password') || props.form.getFieldValue('unsafe')) {
     items.push('link_settings')
+  }
+  const geoVal = props.form.getFieldValue('geo')
+  if (Array.isArray(geoVal) && geoVal.length > 0) {
+    items.push('geo')
   }
   return items
 })
@@ -281,6 +285,58 @@ const defaultOpenItems = computed(() => {
                 :errors="formatErrors(field.state.meta.errors)"
               />
             </Field>
+          </props.form.Field>
+        </FieldGroup>
+      </AccordionContent>
+    </AccordionItem>
+
+    <AccordionItem value="geo">
+      <AccordionTrigger>{{ $t('links.form.geo_routing') }}</AccordionTrigger>
+      <AccordionContent class="px-1">
+        <FieldGroup>
+          <props.form.Field v-slot="{ field }" name="geo">
+            <div class="space-y-2">
+              <div class="flex items-center">
+                <a
+                  href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements" target="_blank" rel="noopener noreferrer" class="
+                    text-xs text-muted-foreground underline underline-offset-2
+                    transition-colors
+                    hover:text-foreground
+                  "
+                >
+                  {{ $t('links.form.find_country_code') }}
+                </a>
+              </div>
+              <div
+                v-for="(item, i) in field.state.value" :key="i" class="
+                  flex items-start gap-2
+                "
+              >
+                <Field class="w-24">
+                  <Input
+                    :model-value="item.country"
+                    :placeholder="$t('links.form.country_code')"
+                    maxlength="2"
+                    autocomplete="off"
+                    @input="field.handleChange(field.state.value.map((v: any, idx: number) => idx === i ? { ...v, country: ($event.target as HTMLInputElement).value.toUpperCase() } : v))"
+                  />
+                </Field>
+                <Field class="flex-1">
+                  <Input
+                    :model-value="item.url"
+                    placeholder="https://..."
+                    autocomplete="url"
+                    @input="field.handleChange(field.state.value.map((v: any, idx: number) => idx === i ? { ...v, url: ($event.target as HTMLInputElement).value } : v))"
+                  />
+                </Field>
+                <Button type="button" variant="ghost" size="icon" @click="field.handleChange(field.state.value.filter((_: any, idx: number) => idx !== i))">
+                  <Trash2 class="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </div>
+              <Button type="button" variant="outline" size="sm" @click="field.handleChange([...field.state.value, { country: '', url: '' }])">
+                <Plus class="mr-2 h-4 w-4" /> {{ $t('links.form.add_geo_route') }}
+              </Button>
+            </div>
           </props.form.Field>
         </FieldGroup>
       </AccordionContent>
