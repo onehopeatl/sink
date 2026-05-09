@@ -293,6 +293,17 @@
     "ai_og_success": "OpenGraph da IA gerado com sucesso"
   },
   "migrate": {
+    "access_export": {
+      "title": "Export Access Data",
+      "description": "Download access statistics as a CSV file",
+      "date_range": "Date Range",
+      "slug_label": "Slug Filter",
+      "slug_description": "Leave empty to export all slugs.",
+      "button": "Export CSV",
+      "exporting": "Exporting...",
+      "success": "Export successful",
+      "failed": "Export failed"
+    },
     "backup": {
       "title": "Backup manual",
       "description": "Aciona um backup manual de todos os links para o bucket R2 configurado",

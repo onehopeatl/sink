@@ -293,6 +293,17 @@
     "ai_og_success": "KI-OpenGraph erfolgreich generiert"
   },
   "migrate": {
+    "access_export": {
+      "title": "Export Access Data",
+      "description": "Download access statistics as a CSV file",
+      "date_range": "Date Range",
+      "slug_label": "Slug Filter",
+      "slug_description": "Leave empty to export all slugs.",
+      "button": "Export CSV",
+      "exporting": "Exporting...",
+      "success": "Export successful",
+      "failed": "Export failed"
+    },
     "backup": {
       "title": "Manuelles Backup",
       "description": "Löse eine manuelle Sicherung aller Links auf dem konfigurierten R2-Bucket aus",

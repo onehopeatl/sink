@@ -293,6 +293,17 @@
     "ai_og_success": "成功生成 AI OpenGraph"
   },
   "migrate": {
+    "access_export": {
+      "title": "匯出存取資料",
+      "description": "將存取統計資料下載為 CSV 檔案",
+      "date_range": "日期範圍",
+      "slug_label": "Slug 篩選",
+      "slug_description": "留空將匯出全部 Slug。",
+      "button": "匯出 CSV",
+      "exporting": "正在匯出...",
+      "success": "匯出成功",
+      "failed": "匯出失敗"
+    },
     "backup": {
       "title": "手動備份",
       "description": "手動觸發所有連結到已配置 R2 儲存桶的備份",
