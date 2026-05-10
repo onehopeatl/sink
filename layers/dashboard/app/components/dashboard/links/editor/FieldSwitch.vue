@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import type { AnyFieldApi } from '@/types'
-
 defineProps<{
-  field: AnyFieldApi
+  id: string
+  modelValue?: boolean
   label: string
   description?: string
+}>()
+
+const emit = defineEmits<{
+  'update:modelValue': [value: boolean]
 }>()
 </script>
 
@@ -12,7 +15,7 @@ defineProps<{
   <Field>
     <div class="flex items-center justify-between">
       <div class="space-y-0.5">
-        <FieldLabel :for="field.name">
+        <FieldLabel :for="id">
           {{ label }}
         </FieldLabel>
         <p v-if="description" class="text-xs text-muted-foreground">
@@ -20,9 +23,9 @@ defineProps<{
         </p>
       </div>
       <Switch
-        :id="field.name"
-        :model-value="field.state.value"
-        @update:model-value="field.handleChange"
+        :id="id"
+        :model-value="modelValue"
+        @update:model-value="emit('update:modelValue', $event)"
       />
     </div>
   </Field>

@@ -210,25 +210,31 @@ async function aiOg() {
         <FieldGroup>
           <props.form.Field v-slot="{ field }" name="redirectWithQuery">
             <DashboardLinksEditorFieldSwitch
-              :field="field"
+              :id="field.name"
+              :model-value="field.state.value"
               :label="$t('links.form.redirect_with_query_label')"
               :description="$t('links.form.redirect_with_query_description')"
+              @update:model-value="field.handleChange"
             />
           </props.form.Field>
 
           <props.form.Field v-slot="{ field }" name="cloaking">
             <DashboardLinksEditorFieldSwitch
-              :field="field"
+              :id="field.name"
+              :model-value="field.state.value"
               :label="$t('links.form.cloaking_label')"
               :description="$t('links.form.cloaking_description')"
+              @update:model-value="field.handleChange"
             />
           </props.form.Field>
 
           <props.form.Field v-slot="{ field }" name="unsafe">
             <DashboardLinksEditorFieldSwitch
-              :field="field"
+              :id="field.name"
+              :model-value="field.state.value"
               :label="$t('links.form.unsafe_label')"
               :description="$t('links.form.unsafe_description')"
+              @update:model-value="field.handleChange"
             />
           </props.form.Field>
 
