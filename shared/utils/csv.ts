@@ -16,5 +16,5 @@ export function generateCsv(headers: string[], rows: unknown[][]): string {
     ...rows.map(row => row.map(escapeCsvCell).join(',')),
   ]
 
-  return `\uFEFF${lines.join('\n')}`
+  return `\uFEFF${lines.join('\n')}\n`
 }

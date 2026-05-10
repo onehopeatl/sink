@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { LinkCheckConfig, LinkCheckResult } from '@/types'
+import { generateCsv } from '#shared/utils/csv'
 import { toErrorMessage } from '#shared/utils/error'
+import { createExportFilename } from '#shared/utils/export-file'
 import { toast } from 'vue-sonner'
 
 const { t } = useI18n()
@@ -114,7 +116,7 @@ function exportResults() {
 
   saveAsCsv(
     generateCsv(header, body),
-    `sink-link-check-${new Date().toISOString().slice(0, 10)}.csv`,
+    createExportFilename('sink-link-check', 'csv'),
   )
 }
 

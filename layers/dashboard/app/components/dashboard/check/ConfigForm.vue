@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { LinkCheckConfig, LinkCheckConfigInput } from '@/types'
+import type { LinkCheckConfig } from '@/types'
 import { LinkCheckConfigSchema } from '#shared/schemas/link-check'
 import { useForm } from '@tanstack/vue-form'
 
@@ -19,11 +19,18 @@ const emit = defineEmits<{
   reload: []
 }>()
 
+interface LinkCheckConfigFormValues {
+  timeout: number | undefined
+  batchSize: number | undefined
+}
+
+const defaultValues: LinkCheckConfigFormValues = {
+  timeout: 6,
+  batchSize: 6,
+}
+
 const form = useForm({
-  defaultValues: {
-    timeout: 6,
-    batchSize: 6,
-  } satisfies LinkCheckConfigInput,
+  defaultValues,
   onSubmit: ({ value }) => {
     emit('start', LinkCheckConfigSchema.parse(value))
   },
@@ -32,6 +39,15 @@ const form = useForm({
 const validateTimeout = makeZodValidator(LinkCheckConfigSchema.shape.timeout)
 const validateBatchSize = makeZodValidator(LinkCheckConfigSchema.shape.batchSize)
 const { isInvalid, getAriaInvalid } = useFieldHelpers()
+
+function getNumberInputValue(value: unknown) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : ''
+}
+
+function getNumberInputChangeValue(event: Event) {
+  const input = event.target as HTMLInputElement
+  return input.value === '' ? undefined : input.valueAsNumber
+}
 </script>
 
 <template>
@@ -45,7 +61,7 @@ const { isInvalid, getAriaInvalid } = useFieldHelpers()
       <form.Field
         v-slot="{ field }"
         name="timeout"
-        :validators="{ onChange: validateTimeout, onSubmit: validateTimeout }"
+        :validators="{ onBlur: validateTimeout, onSubmit: validateTimeout }"
       >
         <Field :data-invalid="isInvalid(field)">
           <FieldLabel :for="field.name">
@@ -58,10 +74,10 @@ const { isInvalid, getAriaInvalid } = useFieldHelpers()
             min="1"
             max="30"
             step="1"
-            :model-value="field.state.value"
+            :model-value="getNumberInputValue(field.state.value)"
             :aria-invalid="getAriaInvalid(field)"
             @blur="field.handleBlur"
-            @input="field.handleChange(($event.target as HTMLInputElement).valueAsNumber)"
+            @input="field.handleChange(getNumberInputChangeValue($event))"
           />
           <FieldDescription>{{ $t('check.config.timeout_description') }}</FieldDescription>
           <FieldError v-if="isInvalid(field)" :errors="field.state.meta.errors" />
@@ -71,7 +87,7 @@ const { isInvalid, getAriaInvalid } = useFieldHelpers()
       <form.Field
         v-slot="{ field }"
         name="batchSize"
-        :validators="{ onChange: validateBatchSize, onSubmit: validateBatchSize }"
+        :validators="{ onBlur: validateBatchSize, onSubmit: validateBatchSize }"
       >
         <Field :data-invalid="isInvalid(field)">
           <FieldLabel :for="field.name">
@@ -84,10 +100,10 @@ const { isInvalid, getAriaInvalid } = useFieldHelpers()
             min="1"
             max="10"
             step="1"
-            :model-value="field.state.value"
+            :model-value="getNumberInputValue(field.state.value)"
             :aria-invalid="getAriaInvalid(field)"
             @blur="field.handleBlur"
-            @input="field.handleChange(($event.target as HTMLInputElement).valueAsNumber)"
+            @input="field.handleChange(getNumberInputChangeValue($event))"
           />
           <FieldDescription>{{ $t('check.config.batch_size_description') }}</FieldDescription>
           <FieldError v-if="isInvalid(field)" :errors="field.state.meta.errors" />
