@@ -138,9 +138,9 @@ async function aiOg() {
               <FieldLabel :for="field.name">
                 {{ $t('links.form.expiration') }}
               </FieldLabel>
-              <p class="text-xs text-muted-foreground">
+              <FieldDescription class="text-xs">
                 {{ $t('links.form.expiration_description') }}
-              </p>
+              </FieldDescription>
               <Popover v-model:open="datePickerOpen">
                 <PopoverTrigger as-child>
                   <Button
@@ -184,9 +184,9 @@ async function aiOg() {
               <FieldLabel :for="field.name">
                 {{ $t('links.form.password_label') }}
               </FieldLabel>
-              <p class="text-xs text-muted-foreground">
+              <FieldDescription class="text-xs">
                 {{ $t('links.form.password_description') }}
-              </p>
+              </FieldDescription>
               <Input
                 :id="field.name"
                 :name="field.name"
